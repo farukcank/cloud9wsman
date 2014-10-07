@@ -1,0 +1,33 @@
+<div class="jumbotron">
+	<h1>Cloud9 Workspace Manager</h1>
+	<p>
+	    Currently <a href="https://github.com/ajaxorg/cloud9">Cloud9 IDE</a> open source component does not have any workspace management capabilities which makes IDE use cases very limmited.
+        Purpose of this project is to provide workspace and user management for Cloud9 IDE.
+	</p>
+</div>
+<p><span class="label label-warning">About Errors</span> None of the errors are displayed in user interface. All will fail silently.</p>
+<p><span class="label label-warning">About Login</span> Entering invalid username and password does not warn user. It will fail silently.</p>
+<p><span class="label label-warning">About Sign up</span> Sign up is not yet implemented. Button will not work. Administrators can create users in users menu.</p>
+<div class="row" class="text-center">
+    <div class="col-lg-6"  ng-show='shallLogin' ng-app="cloud9wsmanApp" ng-controller="loginController">
+		<h2>Login</h2>
+		<form ng-submit="login()">
+    		<fieldset>
+    	        <div class="form-group">
+                    <label for="loginUsernameInput">Username</label>
+                    <input type="text" class="form-control" id="loginUsernameInput" ng-model="username" placeholder="Username">
+                </div>
+                <div class="form-group">
+                    <label for="loginPasswordInput">Password</label>
+                    <input type="password" class="form-control" id="loginPasswordInput" ng-model="password" placeholder="Password">
+                </div>
+                <button type="submit" class="btn btn-primary">Sign in</button>
+            </fieldset>
+        </form>
+	</div>
+    <div class="col-lg-6">
+		<h2>Create Account</h2>
+		<p>Create account controls goes here.</p>
+		<p><a class="btn btn-default" href="#">Signup</a></p>
+	</div>
+</div>

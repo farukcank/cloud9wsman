@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Cloud9 Workspace Manager</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/thirdparty/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="/css/main.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body ng-app="cloud9wsmanApp" ng-controller="mainController">
+
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/">Cloud9WSMan</a>
+        </div>
+        <div class="collapse navbar-collapse" ng-controller="headerController">
+          <ul class="nav navbar-nav">
+            <li ng-class="{ active: isActive('/')}"><a href="#/">Home</a></li>
+            <li ng-class="{ active: isActive('/manage')}"><a href="#/manage">Manage</a></li>
+            <li ng-class="{ active: isActive('/users')}"><a href="#/users">Users</a></li>
+            <li ng-class="{ active: isActive('/workspaces')}"><a href="#/workspaces">Workspaces</a></li>
+            <li ng-class="{ active: isActive('/about')}"><a href="#/about">About</a></li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right" ng-show="shallLogout">
+              <li class="dropdown">
+              <a href="javascript:void(0)" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> {{currentUser.name}} <span class="caret"></span></a>
+              <ul class="dropdown-menu" role="menu">
+                <li><a href="#/profile">Profile</a></li>
+                <li><a href="javascript:void(0)" ng-click="logout()">Sign out</a></li>
+              </ul>
+            </li>
+          </ul>
+          <form class="navbar-form navbar-right" role="form" ng-submit="login()" ng-show="shallLogin">
+            <div class="form-group">
+              <input type="text" placeholder="Username" class="form-control" ng-model="username">
+            </div>
+            <div class="form-group">
+              <input type="password" placeholder="Password" class="form-control" ng-model="password">
+            </div>
+            <button type="submit" class="btn btn-success">Sign in</button>
+          </form>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+    
+    <!-- Content -->
+	<div class="container">
+		<!-- Content -->
+		<div id='spinner' class='spinner' ng-show="loadingView"></div>
+		<section ng-view id="content" class="content" ng-show="!loadingView"></section>
+
+		<!-- Footer -->
+		<hr>
+		<footer>
+			<p class="pull-right">
+				Cloud9WSMan
+			</p>
+		</footer>
+	</div><!-- /container -->
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/thirdparty/jquery.min.js"></script>
+    <script src="/thirdparty/bootstrap/js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="/thirdparty/bootstrap/js/ie10-viewport-bug-workaround.js"></script>
+    <script src="/thirdparty/angular/angular.min.js"></script>
+    <script src="/thirdparty/angular/angular-route.min.js"></script>
+    <script src="/thirdparty/spin.min.js"></script>
+    <script src="/scripts/app.js"></script>
+    <script src="/scripts/controllers.js"></script>
+    <script src="/scripts/services.js"></script>
+    <script>
+        var opts = {
+          lines: 11, // The number of lines to draw
+          length: 5, // The length of each line
+          width: 4, // The line thickness
+          radius: 8, // The radius of the inner circle
+          corners: 1, // Corner roundness (0..1)
+          rotate: 0, // The rotation offset
+          direction: 1, // 1: clockwise, -1: counterclockwise
+          color: '#000', // #rgb or #rrggbb or array of colors
+          speed: 1, // Rounds per second
+          trail: 60, // Afterglow percentage
+          shadow: false, // Whether to render a shadow
+          hwaccel: false, // Whether to use hardware acceleration
+          className: 'spinner', // The CSS class to assign to the spinner
+          zIndex: 2e9, // The z-index (defaults to 2000000000)
+          top: '50%', // Top position relative to parent
+          left: '50%' // Left position relative to parent
+        };
+        var target = document.getElementById('spinner');
+        var spinner = new Spinner(opts).spin(target);
+    </script>
+  </body>
+</html>
