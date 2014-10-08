@@ -169,19 +169,6 @@ function userLogin(credentials){
         return user;
     }).then(internalFilterUserReturnFields);
 }
-/*
-deleteUser({"username":"cank","password":"pw"})
-
-createUser({"username":"cank","name":"can","password":"pw"})
-    .then(internalListUsers).then(console.log)
-    .then(ff(updateUser)({"username":"cank","name":"faruk","password":"pw11"}))
-    .then(internalListUsers).then(console.log)
-    .then(ff(setUserPassword)({"username":"cank","name":"kaya","password":"pw22"}))
-    .then(internalListUsers).then(console.log)
-    .then(ff(deleteUser)({"username":"cank","password":"pw"}))
-    .then(internalListUsers).then(console.log)
-    .done();
-    */
 exports.users = {
     'list':listUsers,
     'create':createUser,
@@ -191,6 +178,8 @@ exports.users = {
     'login':userLogin,
     'logout':userLogout
     };
+    
+
 var workspaceSafeFields = ["id", "name", "identifier", "username", "port", "description"];
 function randomBytes(len){
     var deferred = Q.defer();
@@ -273,112 +262,3 @@ exports.workspaces = {
     'findAvailablePort':findAvailablePort,
     'isPortAvailable':isPortAvailable
 };
-/*
-
-
-function listUsers(){
-    return queryDB('SELECT username, name, email, enabled, userroles from users', []).then(toRows);
-}
-function userLogout(user){
-    return Q(true);
-}
-function userLogin(credentials){
-    return queryDB('SELECT username, name, email, enabled, userroles from users where username=$1 and password=$2', [credentials.username, credentials.password]).then(function(result){
-        if (result.rows.length>0){
-            return Q(result.rows[0]);
-        }else{
-            var error = new Error('invalid username or password');
-            error.code='invalidUsernameOrPassword';
-            return Q.reject(error);
-        }
-    });
-}
-
-function createUser(user){
-    return queryDB('insert into users(username, name, email, password, enabled, userroles) values ($1, $2, $3, $4, $5, $6)', [user.username, user.name, user.email, user.password, user.enabled, user.userroles]).then(function(){return user;});
-}
-
-function updateUser(user){
-    return queryDB('update users set name=$2, email=$3, enabled=$4, userroles=$5 where username=$1', [user.username, user.name, user.email, user.enabled, user.userroles]).then(function(){return user;});
-}
-
-function setUserPassword(user){
-    return queryDB('update users set password=$2 where username=$1', [user.username, user.password]).then(function(){return user;});
-}
-
-function deleteUser(user,callback){
-    return queryDB('delete from users where username = $1', [user.username]).then(true);
-}
-
-function listWorkspacesOfUser(username){
-    return queryDB('select id, name, identifier, username, port, description from workspace where username=$1',[username]).then(toRows);
-}
-
-function listWorkspaces(){
-    return queryDB('select id, name, identifier, username, port, description from workspace').then(toRows);
-}
-
-function getWorkspaceById(id){
-    return queryDB('select id, name, identifier, username, port, description from workspace where id=$1',[id]).then(toRows).then(single);
-}
-
-function createWorkspace(workspace){
-    return querySequence('workspace_sequence').then(function(id){
-        return queryDB('insert into workspace(id, name, identifier, username, port, description) values ($1, $2, $3, $4, $5, $6)', [id, workspace.name, workspace.identifier, workspace.username, workspace.port, workspace.description])
-            .then(function(){
-                workspace.id=id;
-                return workspace;
-            });
-    });
-}
-
-function deleteWorkspace(workspace){
-    return queryDB('delete from workspace where id = $1', [workspace.id]).then(true);
-}
-
-function updateWorkspace(workspace){
-    return queryDB('update workspace set name=$2, username=$3, description=$4 where id=$1', [workspace.id, workspace.name, workspace.username, workspace.description]).then(function(){return workspace;});
-}
-
-function isPortAvailable(port){
-    return queryDB('select id from workspace where port=$1',[port]).then(toRows).then(function(rows){
-        if (rows.length===0)
-            return true;
-        else
-            return false;
-    });
-}
-
-function findAvailablePort(startPort, endPort){
-    return isPortAvailable(startPort).then(function(available){
-        if (available)
-            return Q(startPort);
-        else if (startPort<endPort)
-            return findAvailablePort(startPort+1, endPort);
-        else{
-            var error = new Error('no available port found: '+startPort);
-            error.code='noPortsAvailable';
-            return Q.reject(error);
-        }
-    });
-}
-
-exports.users = {
-    'list':listUsers,
-    'create':createUser,
-    'update':updateUser,
-    'delete':deleteUser,
-    'setPassword':setUserPassword,
-    'login':userLogin,
-    'logout':userLogout
-    };
-exports.workspaces = {
-    'list':listWorkspaces,
-    'listByUsername':listWorkspacesOfUser,
-    'create':createWorkspace,
-    'update':updateWorkspace,
-    'delete':deleteWorkspace,
-    'getById':getWorkspaceById,
-    'findAvailablePort':findAvailablePort,
-    'isPortAvailable':isPortAvailable
-};*/
