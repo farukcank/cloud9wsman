@@ -6,8 +6,6 @@ var Q = require("q");
 var db = require("./db");
 var crypto = require('crypto');
 
-//db.createUser({"username":"test","name":"john doe"},function(success){if (success)console.log("User created");else console.log("Failed to create user");});
-//db.doStuff();
 function sendJSON(response, code, header, data){
     header['Content-Type']='application/json';
     response.writeHead(code, header);
