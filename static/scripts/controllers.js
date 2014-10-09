@@ -172,7 +172,7 @@ module.controller('manageController', function($scope, workspacesService) {
         alert("NOT YET!");
     };
     $scope.deleteWorkspace = function(workspace){
-        workspacesService.deleteMyWorkspace(workspace).success(function(response){
+        workspacesService.deleteWorkspace(workspace).success(function(response){
             var idx = $scope.workspacesList.indexOf(workspace);
             if (idx != -1) {
                 $scope.workspacesList.splice(idx, 1);
@@ -234,15 +234,15 @@ module.controller('myWorkspacesController', function($scope, $rootScope, workspa
             });
         };
     }
-    registerWSStateAction('startWorkspace',workspacesService.startMyWorkspace);
-    registerWSStateAction('stopWorkspace',workspacesService.stopMyWorkspace);
-    registerWSStateAction('killWorkspace',workspacesService.killMyWorkspace);
-    registerWSStateAction('restartWorkspace',workspacesService.restartMyWorkspace);
-    registerWSStateAction('pauseWorkspace',workspacesService.pauseMyWorkspace);
-    registerWSStateAction('resumeWorkspace',workspacesService.resumeMyWorkspace);
+    registerWSStateAction('startWorkspace',workspacesService.startWorkspace);
+    registerWSStateAction('stopWorkspace',workspacesService.stopWorkspace);
+    registerWSStateAction('killWorkspace',workspacesService.killWorkspace);
+    registerWSStateAction('restartWorkspace',workspacesService.restartWorkspace);
+    registerWSStateAction('pauseWorkspace',workspacesService.pauseWorkspace);
+    registerWSStateAction('resumeWorkspace',workspacesService.resumeWorkspace);
     
     $scope.deleteWorkspace = function(workspace){
-        workspacesService.deleteMyWorkspace(workspace).success(function(response){
+        workspacesService.deleteWorkspace(workspace).success(function(response){
             var idx = $scope.workspacesList.indexOf(workspace);
             if (idx != -1) {
                 $scope.workspacesList.splice(idx, 1);
@@ -270,9 +270,9 @@ module.controller('editMyWorkspaceController', function($scope, workspacesServic
         $('#editMyWorkspaceButton').button('loading');
         var f;
         if ($scope.createMode)
-            f = workspacesService.createMyWorkspace;
+            f = workspacesService.createWorkspace;
         else
-            f = workspacesService.updateMyWorkspace;
+            f = workspacesService.updateWorkspace;
         f($scope.workspace).success(function(response){
             $('#editMyWorkspaceButton').button('reset');
             $('#editMyWorkspaceModal').modal('hide');

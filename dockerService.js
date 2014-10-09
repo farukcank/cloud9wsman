@@ -22,7 +22,7 @@ function doRequest(method, path, headers, data){
         res.on('end', function () {
             var result = {'status':res.statusCode,'headers':res.headers,'body':body};
             if (res.statusCode>=400){
-                var error = new Error("Response code: " + res.statusCode);
+                var error = new Error("Response code: " + res.statusCode + " for : "+path);
                 error.result = result;
                 deferred.reject(error);
             } else {

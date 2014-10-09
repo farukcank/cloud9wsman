@@ -19,8 +19,26 @@ function putWorkspaceStates(workspaces){
     }
     return Q.all(works);
 }
+
+function ownWorkspaceOrAdmin(request){
+    return Q.all([U.parseJSONBody(request), session.getSession(request)]).spread(function(workspace, session) {
+        return db.workspaces.getById(workspace.id).then(function (ws){
+            var hasAdminRole = auth.userHasRole('admin');
+            var hasSameUsername = auth.userHasUsername(ws.username);
+            var requirement = auth.userHasSome([hasAdminRole,hasSameUsername]);
+            return Q(session).then(auth.requireUserF(requirement)).then(function(user){
+                return {"session":session,"user":user,"requestWorkspace":workspace,"dbWorkspace":ws};
+            });    
+        });
+    });
+}
+
 function listWorkspacesHandler(request, response){
-    db.workspaces.list().then(putWorkspaceStates).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
+    session.getSession(request)
+        .then(auth.requireUser('admin'))
+        .then(db.workspaces.list)
+        .then(putWorkspaceStates)
+        .done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
 
 function listMyWorkspacesHandler(request, response){
@@ -29,8 +47,8 @@ function listMyWorkspacesHandler(request, response){
     }).then(putWorkspaceStates).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
 
-function createMyWorkspaceHandler(request, response){
-    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser())]).spread(function(workspace, user) {
+function createWorkspaceHandler(request, response){
+    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser('user'))]).spread(function(workspace, user) {
         return db.workspaces.findAvailablePort(11000,15000).then(function(p){
             var port = p.toString();
             return dockerService.container.create("cank/cloud9:v1", ["/cloud9.sh", port], [port]).then(function(containerId){
@@ -42,85 +60,68 @@ function createMyWorkspaceHandler(request, response){
         });
     }).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
-function checkWorkspaceUser(user){
-    return function(workspace){
-        if (workspace.username!=user.username){
-            var error = new Error('workspace user does not match');
-            error.code='forbiden';
-            return Q.reject(error);
-        }else{
-            return Q(workspace);
-        }
-    };
-}
-function myWorkspaceStateChangingHandler(request, response, callback){
-    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser())]).spread(function(workspace, user) {
-        return db.workspaces.getById(workspace.id).then(checkWorkspaceUser(user)).then(function(ws){
-            return callback(ws).then(function(){
-                return dockerService.container.inspect(ws.identifier).get('State');
-            });
-        });
+function workspaceStateChangingHandler(request, response, callback){
+    ownWorkspaceOrAdmin(request).then(function(r){
+        var ws = r.dbWorkspace;
+        return callback(ws).then(putWorkspaceState.bind(null,ws)).get('state');
     }).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
-function startMyWorkspaceHandler(request, response){
-    myWorkspaceStateChangingHandler(request, response, function(ws){
+function startWorkspaceHandler(request, response){
+    workspaceStateChangingHandler(request, response, function(ws){
         return dockerService.container.start(ws.identifier,[ws.port.toString()]);
     });
 }
-function stopMyWorkspaceHandler(request, response){
-    myWorkspaceStateChangingHandler(request, response, function(ws){
+function stopWorkspaceHandler(request, response){
+    workspaceStateChangingHandler(request, response, function(ws){
         return dockerService.container.stop(ws.identifier,[ws.port.toString()]);
     });
 }
-function killMyWorkspaceHandler(request, response){
-    myWorkspaceStateChangingHandler(request, response, function(ws){
+function killWorkspaceHandler(request, response){
+    workspaceStateChangingHandler(request, response, function(ws){
         return dockerService.container.kill(ws.identifier,[ws.port.toString()]);
     });
 }
-function restartMyWorkspaceHandler(request, response){
-    myWorkspaceStateChangingHandler(request, response, function(ws){
+function restartWorkspaceHandler(request, response){
+    workspaceStateChangingHandler(request, response, function(ws){
         return dockerService.container.restart(ws.identifier,[ws.port.toString()]);
     });
 }
-function pauseMyWorkspaceHandler(request, response){
-    myWorkspaceStateChangingHandler(request, response, function(ws){
+function pauseWorkspaceHandler(request, response){
+    workspaceStateChangingHandler(request, response, function(ws){
         return dockerService.container.pause(ws.identifier,[ws.port.toString()]);
     });
 }
-function resumeMyWorkspaceHandler(request, response){
-    myWorkspaceStateChangingHandler(request, response, function(ws){
+function resumeWorkspaceHandler(request, response){
+    workspaceStateChangingHandler(request, response, function(ws){
         return dockerService.container.unpause(ws.identifier,[ws.port.toString()]);
     });
 }
-function deleteMyWorkspaceHandler(request, response){
-    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser())]).spread(function(workspace, user) {
-        return db.workspaces.getById(workspace.id).then(checkWorkspaceUser(user)).then(function(ws){
-            return dockerService.container.remove(ws.identifier).then(function(){
-                return db.workspaces.delete(ws);
-            });
-        });
+function deleteWorkspaceHandler(request, response){
+    ownWorkspaceOrAdmin(request).then(function(r){
+        var ws = r.dbWorkspace;
+        return dockerService.container.remove(ws.identifier).then(db.workspaces.delete.bind(null,ws));
     }).done(U.jsonEmptyResultHandler(response), U.jsonErrorHandler(response));
 }
-function updateMyWorkspaceHandler(request, response){
-    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser())]).spread(function(workspace, user) {
-        return db.workspaces.getById(workspace.id).then(checkWorkspaceUser(user)).then(function(ws){
-            ws.name = workspace.name;
-            ws.description = workspace.description;
-            return db.workspaces.update(ws).then(putWorkspaceState);
-        });
+function updateWorkspaceHandler(request, response){
+    ownWorkspaceOrAdmin(request).then(function(r){
+        var ws = r.dbWorkspace;
+        var workspace = r.requestWorkspace;
+        ws.name = workspace.name;
+        ws.description = workspace.description;
+        return db.workspaces.update(ws).then(putWorkspaceState);
     }).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
 
 exports.register = function(router){
     router.register("/workspaces/list",listWorkspacesHandler);
-    router.register("/workspaces/my/list",listMyWorkspacesHandler);
-    router.registerPost("/workspaces/my/create",createMyWorkspaceHandler);
-    router.registerPost("/workspaces/my/delete",deleteMyWorkspaceHandler);
-    router.registerPost("/workspaces/my/update",updateMyWorkspaceHandler);
-    router.registerPost("/workspaces/my/start",startMyWorkspaceHandler);
-    router.registerPost("/workspaces/my/stop",stopMyWorkspaceHandler);
-    router.registerPost("/workspaces/my/kill",killMyWorkspaceHandler);
-    router.registerPost("/workspaces/my/restart",restartMyWorkspaceHandler);
-    router.registerPost("/workspaces/my/pause",pauseMyWorkspaceHandler);
-    router.registerPost("/workspaces/my/resume",resumeMyWorkspaceHandler);
+    router.register("/workspaces/listmy",listMyWorkspacesHandler);
+    router.registerPost("/workspaces/create",createWorkspaceHandler);
+    router.registerPost("/workspaces/delete",deleteWorkspaceHandler);
+    router.registerPost("/workspaces/update",updateWorkspaceHandler);
+    router.registerPost("/workspaces/start",startWorkspaceHandler);
+    router.registerPost("/workspaces/stop",stopWorkspaceHandler);
+    router.registerPost("/workspaces/kill",killWorkspaceHandler);
+    router.registerPost("/workspaces/restart",restartWorkspaceHandler);
+    router.registerPost("/workspaces/pause",pauseWorkspaceHandler);
+    router.registerPost("/workspaces/resume",resumeWorkspaceHandler);
 };
