@@ -30,9 +30,7 @@ function getUser(session){
     if (user){
         return Q(user);
     }else{
-        var error = new Error('no user in session');
-        error.code='noUserInSession';
-        return Q.reject(error);
+        return Q(null);
     }
 }
 
@@ -49,8 +47,28 @@ function encryptPassword(user){
 function logout(session){
     return getUser(session).then(db.users.logout).then(clearUserFromSession(session));
 }
+var roleMap = {"guest":["guest"],"user":["guest","user"],"admin":["guest","user","admin"]};
+function requireUser(role){
+    return function(session){
+        var obj = session.object;
+        var user = obj?obj.user:null;
+        if (user){
+            if (role && roleMap[role].indexOf(user.role)<0){
+                var error = new Error('user is not authorized requested: '+role+' got: '+user.role);
+                error.code='unauthorized';
+                return Q.reject(error);    
+            }
+            return Q(user);
+        }else{
+            var error2 = new Error('no user in session');
+            error2.code='noUserInSession';
+            return Q.reject(error2);
+        }
+    };
+}
 
 exports.getUser=getUser;
 exports.login=login;
 exports.encryptPassword=encryptPassword;
 exports.logout=logout;
+exports.requireUser = requireUser;

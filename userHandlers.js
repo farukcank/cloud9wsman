@@ -43,16 +43,7 @@ function logoutUserHandler(request, response){
 }
 
 function currentUserHandler(request, response){
-    session.getSession(request).then(function(session) {
-        return auth.getUser(session).then(U.jsonResultHandler(response));
-    }).catch(function(error){
-        if (error && error.code == 'noUserInSession'){
-            U.sendJSON(response, 200, {}, null);
-            return Q(null);
-        }else{
-            return Q.reject(error);
-        }
-    }).catch(U.jsonErrorHandler(response));
+    session.getSession(request).then(auth.getUser).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
 
 exports.register = function(router){

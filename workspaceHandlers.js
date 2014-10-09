@@ -24,13 +24,13 @@ function listWorkspacesHandler(request, response){
 }
 
 function listMyWorkspacesHandler(request, response){
-    session.getSession(request).then(auth.getUser).then(function(user){
+    session.getSession(request).then(auth.requireUser()).then(function(user){
         return db.workspaces.listByUsername(user.username);
     }).then(putWorkspaceStates).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
 
 function createMyWorkspaceHandler(request, response){
-    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.getUser)]).spread(function(workspace, user) {
+    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser())]).spread(function(workspace, user) {
         return db.workspaces.findAvailablePort(11000,15000).then(function(p){
             var port = p.toString();
             return dockerService.container.create("cank/cloud9:v1", ["/cloud9.sh", port], [port]).then(function(containerId){
@@ -54,7 +54,7 @@ function checkWorkspaceUser(user){
     };
 }
 function myWorkspaceStateChangingHandler(request, response, callback){
-    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.getUser)]).spread(function(workspace, user) {
+    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser())]).spread(function(workspace, user) {
         return db.workspaces.getById(workspace.id).then(checkWorkspaceUser(user)).then(function(ws){
             return callback(ws).then(function(){
                 return dockerService.container.inspect(ws.identifier).get('State');
@@ -93,7 +93,7 @@ function resumeMyWorkspaceHandler(request, response){
     });
 }
 function deleteMyWorkspaceHandler(request, response){
-    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.getUser)]).spread(function(workspace, user) {
+    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser())]).spread(function(workspace, user) {
         return db.workspaces.getById(workspace.id).then(checkWorkspaceUser(user)).then(function(ws){
             return dockerService.container.remove(ws.identifier).then(function(){
                 return db.workspaces.delete(ws);
@@ -102,7 +102,7 @@ function deleteMyWorkspaceHandler(request, response){
     }).done(U.jsonEmptyResultHandler(response), U.jsonErrorHandler(response));
 }
 function updateMyWorkspaceHandler(request, response){
-    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.getUser)]).spread(function(workspace, user) {
+    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser())]).spread(function(workspace, user) {
         return db.workspaces.getById(workspace.id).then(checkWorkspaceUser(user)).then(function(ws){
             ws.name = workspace.name;
             ws.description = workspace.description;
