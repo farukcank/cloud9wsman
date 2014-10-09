@@ -5,27 +5,42 @@ var auth = require('./auth');
 var session = require("./session");
 
 function listUserHandler(request, response){
-    db.users.list().done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
+    session.getSession(request).then(auth.requireUser('admin')).then(db.users.list).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
 
 function createUserHandler(request, response){
-    U.parseJSONBody(request).then(auth.encryptPassword).then(function(user){
-        return db.users.create(user);
+    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser('admin'))]).spread(function(user, loggedInUser) {
+        auth.encryptPassword(user).then(db.users.create);
     }).done(U.jsonEmptyResultHandler(response), U.jsonErrorHandler(response));
 }
 function updateUserHandler(request, response){
-    U.parseJSONBody(request).then(function(user){
-        return db.users.update(user);
+    Q.all([U.parseJSONBody(request), session.getSession(request)]).spread(function(user, session) {
+        var hasAdminRole = auth.userHasRole('admin');
+        var hasSameUsername = auth.userHasUsername(user.username);
+        var requirement = auth.userHasSome([hasAdminRole,hasSameUsername]);
+        return Q(session).then(auth.requireUserF(requirement)).then(function(loggedInUser){
+            if (!hasAdminRole(loggedInUser)){
+                if (loggedInUser.userroles != user.userroles || loggedInUser.enabled != user.enabled){
+                    var error = new Error('user is not authorized requested');
+                    error.code='forbiden';
+                    return Q.reject(error);
+                }
+            }
+            return Q(loggedInUser);
+        }).then(db.users.update.bind(null,user));
     }).done(U.jsonEmptyResultHandler(response), U.jsonErrorHandler(response));
 }
 function deleteUserHandler(request, response){
-    U.parseJSONBody(request).then(function(user){
+    Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser('admin'))]).spread(function(user, loggedInUser) {
         return db.users.delete(user);
     }).done(U.jsonEmptyResultHandler(response), U.jsonErrorHandler(response));
 }
 function setUserPasswordHandler(request, response){
-    U.parseJSONBody(request).then(auth.encryptPassword).then(function(user){
-        return db.users.setPassword(user);
+    Q.all([U.parseJSONBody(request), session.getSession(request)]).spread(function(user, session) {
+        var hasAdminRole = auth.userHasRole('admin');
+        var hasSameUsername = auth.userHasUsername(user.username);
+        var requirement = auth.userHasSome([hasAdminRole,hasSameUsername]);
+        return Q(session).then(auth.requireUserF(requirement)).then(auth.encryptPassword.bind(null,user)).then(db.users.setPassword);
     }).done(U.jsonEmptyResultHandler(response), U.jsonErrorHandler(response));
 }
 

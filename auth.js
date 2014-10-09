@@ -48,14 +48,14 @@ function logout(session){
     return getUser(session).then(db.users.logout).then(clearUserFromSession(session));
 }
 var roleMap = {"guest":["guest"],"user":["guest","user"],"admin":["guest","user","admin"]};
-function requireUser(role){
+function requireUserF(f){
     return function(session){
         var obj = session.object;
         var user = obj?obj.user:null;
         if (user){
-            if (role && roleMap[role].indexOf(user.role)<0){
-                var error = new Error('user is not authorized requested: '+role+' got: '+user.role);
-                error.code='unauthorized';
+            if (!f(user)){
+                var error = new Error('user is not authorized requested');
+                error.code='forbiden';
                 return Q.reject(error);    
             }
             return Q(user);
@@ -66,9 +66,40 @@ function requireUser(role){
         }
     };
 }
-
-exports.getUser=getUser;
-exports.login=login;
-exports.encryptPassword=encryptPassword;
-exports.logout=logout;
+function userHasRole(role){
+    return function(user){
+        return !role || roleMap[user.userroles].indexOf(role)>=0;
+    };
+}
+function userHasUsername(username){
+    return function(user){
+        return user.username == username;
+    };
+}
+function requireUser(role){
+    return requireUserF(userHasRole(role));
+}
+function userHasAll(arr){
+    return function(user){
+        return arr.every(function(f){
+            return f(user);
+        });
+    };
+}
+function userHasSome(arr){
+    return function(user){
+        return arr.some(function(f){
+            return f(user);
+        });
+    };
+}
+exports.getUser = getUser;
+exports.login = login;
+exports.encryptPassword = encryptPassword;
+exports.logout = logout;
 exports.requireUser = requireUser;
+exports.requireUserF = requireUserF;
+exports.userHasRole = userHasRole;
+exports.userHasUsername = userHasUsername;
+exports.userHasAll = userHasAll;
+exports.userHasSome = userHasSome;
