@@ -13,7 +13,30 @@ client.on("error", function (err) {
 var keyPrefix = "cloud9wsman.";
 var usersKey = keyPrefix+"users";
 var workspacesKey = keyPrefix+"workspaces";
+var sessionSecretKey = keyPrefix + "secretKey";
 var Q = require("q");
+
+function getSessionSecret(){
+    return redis_get(sessionSecretKey).then(function(val){
+        if (val===null || val===undefined){
+            return randomHex(64).then(function(randomValue){
+                return redis_setnx(sessionSecretKey, randomValue).then(function(res){
+                    if (res==1){
+                        redis_expire(sessionSecretKey, 2*24*60*60);// Two days
+                        console.log("Generated session secret");
+                        return Q(randomValue);
+                    }else{
+                        return getSessionSecret();
+                    }
+                });
+            });
+        }else{
+            return Q(val);
+        }
+    });
+}
+
+exports.getSessionSecret = getSessionSecret;
 
 function redisCallback(deferred){
     return function(err, res){
@@ -56,6 +79,25 @@ function expectNotNull(code, message){
         return actual;
     };
 }
+
+function redis_get(key){
+    var deferred = Q.defer();
+    client.get(key, redisCallback(deferred));
+    return deferred.promise;
+}
+
+function redis_setnx(key, value){
+    var deferred = Q.defer();
+    client.setnx(key, value, redisCallback(deferred));
+    return deferred.promise;
+}
+function redis_expire(key, seconds){
+    var deferred = Q.defer();
+    client.expire(key, seconds, redisCallback(deferred));
+    return deferred.promise;
+}
+
+
 function redis_hget(key, field){
     var deferred = Q.defer();
     client.hget(key, field, redisCallback(deferred));

@@ -1,9 +1,8 @@
-
+var db = require('./db');
 var Q = require("q");
 var crypto = require('crypto');
-var key = 'abcdeg';
 
-function digest(text){
+function digest(key, text){
     return crypto.createHmac('sha512', key).update(text).digest('base64');
 }
 
@@ -37,20 +36,22 @@ function getCookies(request){
 }
 
 function getSession(request){
-    var c = getCookies(request);
-    var session = c.cookies.session;
-    var sessionVerifier = c.cookies.sessionVerifier;
-    var sessionObject = null;
-    if (session && sessionVerifier && sessionVerifier == digest(session)){
-        sessionObject = JSON.parse(session);
-    }
-    function updateSessionObject(object){
-        var newSession = JSON.stringify(object);
-        var newSessionVerifier = digest(newSession);
-        c.addCookie('session', newSession);
-        c.addCookie('sessionVerifier', newSessionVerifier);
-    }
-    return Q({'object':sessionObject, 'updateSessionObject':updateSessionObject, 'addToHeader':c.addToHeader});
+    return db.getSessionSecret().then(function(key){
+        var c = getCookies(request);
+        var session = c.cookies.session;
+        var sessionVerifier = c.cookies.sessionVerifier;
+        var sessionObject = null;
+        if (session && sessionVerifier && sessionVerifier == digest(key, session)){
+            sessionObject = JSON.parse(session);
+        }
+        function updateSessionObject(object){
+            var newSession = JSON.stringify(object);
+            var newSessionVerifier = digest(key, newSession);
+            c.addCookie('session', newSession);
+            c.addCookie('sessionVerifier', newSessionVerifier);
+        }
+        return {'object':sessionObject, 'updateSessionObject':updateSessionObject, 'addToHeader':c.addToHeader};
+    });
 }
 
 //exports.withCookies = withCookies;
