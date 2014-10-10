@@ -1,10 +1,11 @@
+var config = require('config');
 var U = require('./handlerUtility');
 var dockerService = require("./dockerService");
 var Q = require("q");
 var db = require("./db");
 var session = require("./session");
 var auth = require("./auth");
-
+var url = require('url');
 function putWorkspaceState(workspace){
     return dockerService.container.inspect(workspace.identifier).then(function(inspectResult){
         workspace.state = inspectResult.State;
@@ -111,10 +112,48 @@ function updateWorkspaceHandler(request, response){
         return db.workspaces.update(ws).then(putWorkspaceState);
     }).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
+function goToWorkspaceHandler(request, response){
+    var r = url.parse(request.url, true);
+    var workspaceId = r.query.id;
+    var replacements = {"workspace.id":workspaceId,"application.port":U.getApplicationPort()};
+    var targetAddress = config.get('workspaceAddress').replace(/{([a-zA-Z_0-9\.]+)}/g, function(match, key) { 
+      return typeof replacements[key] != 'undefined'
+        ? replacements[key]
+        : match
+      ;
+    });
+    response.writeHead(302, {'Location': targetAddress});
+    response.end();
+}
+function workspaceProxyFunction(proxy){
+    var identifierRegex = /^([$A-Z_][0-9A-Z_$]{3,9})\./i;
+    return function(req, res, next) {
+        var match = identifierRegex.exec(req.headers.host);
+        if (match){
+            req.pause();
+            db.workspaces.getById(match[1]).done(function (workspace){
+                req.resume();
+                var tar = 'http://192.168.100.128:'+workspace.port;
+                proxy.web(req, res, {
+                    target: tar
+                });
+            },function(err){
+                req.resume();
+                res.writeHead(500, {"Content-Type":"text/plain"});
+                res.write(err.message);
+                res.end();
+                console.log(err.stack);
+            });
+        }else{
+            next();
+        }
+    };
+}
 
 exports.register = function(router){
     router.register("/workspaces/list",listWorkspacesHandler);
     router.register("/workspaces/listmy",listMyWorkspacesHandler);
+    router.register("/workspaces/go",goToWorkspaceHandler);
     router.registerPost("/workspaces/create",createWorkspaceHandler);
     router.registerPost("/workspaces/delete",deleteWorkspaceHandler);
     router.registerPost("/workspaces/update",updateWorkspaceHandler);
@@ -125,3 +164,4 @@ exports.register = function(router){
     router.registerPost("/workspaces/pause",pauseWorkspaceHandler);
     router.registerPost("/workspaces/resume",resumeWorkspaceHandler);
 };
+exports.workspaceProxyFunction=workspaceProxyFunction;

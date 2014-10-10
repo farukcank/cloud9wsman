@@ -1,4 +1,15 @@
 var Q = require("q");
+var config = require('config');
+function getConfigValue(key, def){
+    var val = config.get(key);
+    if (val===null)
+        return def;
+    else
+        return val;
+}
+function getApplicationPort(){
+    return getConfigValue("application.port",process.env.PORT);
+}
 function parseJSONBody(request){
     var deferred = Q.defer();
     var body='';
@@ -58,3 +69,5 @@ exports.sendJSON = sendJSON;
 exports.jsonResultHandler = jsonResultHandler;
 exports.jsonErrorHandler=jsonErrorHandler;
 exports.jsonEmptyResultHandler=jsonEmptyResultHandler;
+exports.getConfigValue=getConfigValue;
+exports.getApplicationPort=getApplicationPort;

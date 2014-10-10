@@ -93,6 +93,24 @@ function userHasSome(arr){
         });
     };
 }
+
+// Setup
+function setup(){
+    // Create an admin user if there is not any user
+    db.users.count().then(function(cnt){
+        if (cnt===0){
+            var defaultUser = {'username':'admin','email':'admin@admin.admin', 'name':'Administrator','password':'admin','enabled':true,'userroles':'admin'};
+            return encryptPassword(defaultUser).then(db.users.create).then(function(user){
+                console.log("There was no error in database created admin:admin");
+            });
+        }else{
+            return Q(null);
+        }
+    }).done();
+}
+
+setup();
+
 exports.getUser = getUser;
 exports.login = login;
 exports.encryptPassword = encryptPassword;

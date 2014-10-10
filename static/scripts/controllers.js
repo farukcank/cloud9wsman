@@ -223,7 +223,9 @@ module.controller('myWorkspacesController', function($scope, $rootScope, workspa
         $scope.query = '';
     };
     $scope.workspaceUrl = function(workspace){
-        return "http://"+window.location.hostname+":"+workspace.port;
+        return '/workspaces/go?id='+workspace.id;
+        //return "http://"+window.location.hostname+":"+workspace.port;
+        //return "http://"+workspace.id+".cloud9wsman.com:"+window.location.port;
     };
     function registerWSStateAction(name,f){
         $scope[name]=function(workspace){

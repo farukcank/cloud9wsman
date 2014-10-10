@@ -3,6 +3,7 @@
 <p><span class="label label-info">To Open</span> You can click on the names of the workspaces to open up colud9 IDE.
 Workspace should be running in order to access the IDE. Stopped or paused workspaces will not be accessable.</p>
 <p><span class="label label-info">About Create</span> For each workspace there is a seperate docker container. Every action you take (including command line actions such as apt-get) will be only for that container.</p>
+<p><span class="label label-warning">About Id</span> Globally unique id's should be set to workpaces. It should start with a character, continue with a character or digit, should be at least 4 characters and less then 10 characters.</p>
 <p><span class="label label-warning">About Kill</span> Killing a workspace kills the container along with all of its processes. It might cause data loss.</p>
 <p><span class="label label-danger">About Delete</span> When deleting a workspace its container is also deleted. Files in that container will not be recoverable. Use delete with caution.</p>
 
@@ -23,8 +24,9 @@ Workspace should be running in order to access the IDE. Stopped or paused worksp
         <thead>
             <tr>
                 <th>S</th>
+                <th>ID</th>
                 <th>Name</th>
-                <th>Identifier</th>
+                <th>Container ID</th>
                 <th>Port</th>
                 <th>Actions</th>
             </tr>
@@ -32,6 +34,7 @@ Workspace should be running in order to access the IDE. Stopped or paused worksp
         <tbody>
             <tr ng-repeat="workspace in workspacesList | filter:query">
                 <td><span ng-show="workspace.state.Running &amp;&amp; !workspace.state.Paused" style="color:#00C800" class="glyphicon glyphicon-play" title="Running"></span><span ng-show="!workspace.state.Running" style="color:#C80000" class="glyphicon glyphicon-stop" title="Stopped"></span><span ng-show="workspace.state.Running &amp;&amp; workspace.state.Paused" style="color:#C8C800" class="glyphicon glyphicon-pause" title="Paused"></span></td>
+                <td>{{workspace.id}}</td>
                 <td><a href="{{workspaceUrl(workspace)}}" target="_blank">{{workspace.name}}</a></td>
                 <td><code title="{{workspace.identifier}}">{{workspace.identifier.substring(0,6)}}</code></td>
                 <td>{{workspace.port}}</td>
@@ -64,6 +67,11 @@ Workspace should be running in order to access the IDE. Stopped or paused worksp
                     </div>
                     <div class="modal-body">
                         <fieldset>
+                            <div class="form-group">
+                                <label for="editMyWorkspaceNameInput">Id</label>
+                                <input type="text" class="form-control" id="editMyWorkspaceIdInput"
+                                ng-model="workspace.id" placeholder="Enter id">
+                            </div>
                             <div class="form-group">
                                 <label for="editMyWorkspaceNameInput">Name</label>
                                 <input type="text" class="form-control" id="editMyWorkspaceNameInput"

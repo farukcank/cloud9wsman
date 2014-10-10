@@ -2,6 +2,7 @@ var crypto = require('crypto');
 var redis = require("redis"),
     client = redis.createClient();
 
+var identifierRegex = /^[$A-Z_][0-9A-Z_$]{3,9}$/i;
 // if you'd like to select database 3, instead of 0 (default), call
 // client.select(3, function() { /* ... */ });
 
@@ -40,6 +41,7 @@ function expect(expected, code, message){
         return actual;
     };
 }
+
 function expectNotNull(code, message){
     return function(actual){
         if (actual===null || actual === undefined){
@@ -84,6 +86,12 @@ function redis_hdel(key, field){
     return deferred.promise;
 }
 
+function redis_hlen(key){
+    var deferred = Q.defer();
+    client.hlen(key, redisCallback(deferred));
+    return deferred.promise;
+}
+
 
 function constant(cn){
     return function(){
@@ -117,6 +125,11 @@ function createUser(user){
         var error = new Error('username does not exist');
         error.code='usernamedoesnotexist';
         return Q.reject(error);
+    }
+    if (!identifierRegex.test(user.username)){
+        var error2 = new Error('invalid username');
+        error2.code='invalidusername';
+        return Q.reject(error2);
     }
     return redis_hsetnx(usersKey, user.username, JSON.stringify(user)).then(expect(1,'useralreadyexist','User already exists')).then(function(){
         return copyObject(user, {}, ['username','name','email','enabled','userroles']);
@@ -169,6 +182,10 @@ function userLogin(credentials){
         return user;
     }).then(internalFilterUserReturnFields);
 }
+function getNumberOfUsers(){
+    return redis_hlen(usersKey).then(parseInt);
+}
+
 exports.users = {
     'list':listUsers,
     'create':createUser,
@@ -176,7 +193,8 @@ exports.users = {
     'delete':deleteUser,
     'setPassword':setUserPassword,
     'login':userLogin,
-    'logout':userLogout
+    'logout':userLogout,
+    'count':getNumberOfUsers
     };
     
 
@@ -208,11 +226,18 @@ function updateWorkspace(workspace){
     });
 }
 function createWorkspace(workspace){
+    if (!workspace || !workspace.id){
+        var error = new Error('id does not exist');
+        error.code='iddoesnotexist';
+        return Q.reject(error);
+    }
+    if (!identifierRegex.test(workspace.id)){
+        var error2 = new Error('invalid workspace id');
+        error2.code='invalidworkspaceid';
+        return Q.reject(error2);
+    }
     workspace = copyObject(workspace, {}, workspaceSafeFields);
-    return randomHex(16).then(function(id){
-        workspace.id = id;
-        return redis_hsetnx(workspacesKey, workspace.id, JSON.stringify(workspace)).then(expect(1,'workspacealreadyexist','Workspace already exists')).then(constant(workspace));
-    });
+    return redis_hsetnx(workspacesKey, workspace.id, JSON.stringify(workspace)).then(expect(1,'workspacealreadyexist','Workspace already exists')).then(constant(workspace));
 }
 function deleteWorkspace(workspace){
     return redis_hdel(workspacesKey, workspace.id).then(expect(1,'workspacedoesnotexist','Workspace does not exist')).then(constant(true));
@@ -252,6 +277,7 @@ function findAvailablePort(startPort, endPort){
         }
     });
 }
+
 exports.workspaces = {
     'list':listWorkspaces,
     'listByUsername':listWorkspacesOfUser,
@@ -260,5 +286,5 @@ exports.workspaces = {
     'delete':deleteWorkspace,
     'getById':getWorkspace,
     'findAvailablePort':findAvailablePort,
-    'isPortAvailable':isPortAvailable
+    'isPortAvailable':isPortAvailable,
 };
