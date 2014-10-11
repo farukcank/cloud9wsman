@@ -7,5 +7,8 @@
     "baseContainer":{
         "name":"cank/cloud9:v1",
         "command":["/cloud9.sh", "{port}"]
+    },
+    "docker":{
+        "socketPath":"/var/run/docker.sock"
     }
 }

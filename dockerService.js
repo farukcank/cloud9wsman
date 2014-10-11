@@ -1,8 +1,13 @@
 var http = require("http");
 var Q = require("q");
+var config = require('config');
 
 function requestOptions(obj){
-    obj.socketPath = '/var/run/docker.sock';
+    var docker = config.get('docker');
+    obj.socketPath = docker.socketPath;
+    obj.port = docker.port;
+    obj.host = docker.host;
+    obj.hostName = docker.hostName;
     return obj;
 }
 function bodyAsJson(result){
