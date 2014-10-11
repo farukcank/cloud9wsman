@@ -138,7 +138,7 @@ function redis_hlen(key){
 function constant(cn){
     return function(){
         return cn;
-    }
+    };
 }
 function copyObject(src, dst, filter){
     filter.forEach(function (f) {
@@ -209,8 +209,8 @@ function setUserPassword(user){
 function userLogout(user){
     return Q(true);
 }
-function userLogin(credentials){
-    return internalGetUser(credentials.username).fail(function(error){
+function userLogin(username, password, verifier){
+    return internalGetUser(username).fail(function(error){
         if (error.code=='userdoesnotexist'){
             var newError = new Error('invalidusernameorpassword');
             newError.code='invalidUsernameOrPassword';
@@ -219,12 +219,15 @@ function userLogin(credentials){
             return Q.reject(error);
         }
     }).then(function(user){
-        if (user.password!=credentials.password){
-            var error = new Error('invalidusernameorpassword');
-            error.code='invalidUsernameOrPassword';
-            return Q.reject(error); 
-        }
-        return user;
+        return verifier(user.password, password).then(function(result){
+            if (result)
+                return Q(user);
+            else{
+                var error = new Error('invalidusernameorpassword');
+                error.code='invalidUsernameOrPassword';
+                return Q.reject(error); 
+            }
+        }).then(constant(user));
     }).then(internalFilterUserReturnFields);
 }
 function getNumberOfUsers(){

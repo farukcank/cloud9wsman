@@ -2,6 +2,51 @@ var Q = require("q");
 var db = require("./db");
 var crypto = require('crypto');
 
+function randomBytes(len){
+    var deferred = Q.defer();
+    crypto.randomBytes(32, function(err, key){
+        if (err){
+            return deferred.reject(err);
+        }
+        return deferred.resolve(key);
+    });
+    return deferred.promise;
+}
+
+function pbkdf2(salt, password){
+    var deferred = Q.defer();
+    crypto.pbkdf2(password, salt, 1000, 32, function(err,key){
+        if (err){
+            return deferred.reject(err);
+        }
+        return deferred.resolve(key);
+    });
+    return deferred.promise;
+}
+
+function encryptPW(password){
+    return randomBytes(32).then(function(salt){
+        return pbkdf2(salt, password).then(function(verifier){
+            return Q({"verifier":new Buffer(verifier).toString("base64"),"method":"pbkdf2","salt":new Buffer(salt).toString("base64")});
+        });
+    });
+}
+
+function verifyPW(passwordRecord, password){
+    return pbkdf2(new Buffer(passwordRecord.salt,'base64').toString('binary'), password).then(function(verifier){
+        var ver = new Buffer(verifier).toString("base64");
+        if (ver==passwordRecord.verifier){
+            return Q(true);
+        }else{
+            //console.log(ver + " != " + passwordRecord.verifier);
+            //var error = new Error("invalid username or password");
+            //error.code = "invalidUsernameOrPassword";
+            //return Q.reject(error);
+            return Q(false);
+        }
+    });
+}
+
 function setUserToSession(session){
     return function(user){
         var obj = session.object;
@@ -39,12 +84,14 @@ function login(session, credentials){
 }
 
 function encryptPassword(user){
-    user.password = crypto.createHmac('sha512', user.username).update(user.password).digest('base64');
-    return Q(user);
+    return encryptPW(user.password).then(function(pw){
+        user.password = pw;
+        return Q(user);
+    });
 }
 
 function checkLogin(credentials){
-    return encryptPassword(credentials).then(db.users.login);
+    return db.users.login(credentials.username, credentials.password, verifyPW);
 }
 
 function logout(session){
@@ -102,9 +149,12 @@ function setup(){
     // Create an admin user if there is not any user
     db.users.count().then(function(cnt){
         if (cnt===0){
-            var defaultUser = {'username':'admin','email':'admin@admin.admin', 'name':'Administrator','password':'admin','enabled':true,'userroles':'admin'};
-            return encryptPassword(defaultUser).then(db.users.create).then(function(user){
-                console.log("There was no error in database created admin:admin");
+            var defaultUser = {'username':'admin','email':'admin@admin.admin', 'name':'Administrator','enabled':true,'userroles':'admin'};
+            return encryptPW('admin').then(function(rec){
+                defaultUser.password = rec;
+                return Q(defaultUser).then(db.users.create).then(function(user){
+                    console.log("There was no error in database created admin:admin");
+                });
             });
         }else{
             return Q(null);
