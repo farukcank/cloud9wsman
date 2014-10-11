@@ -3,7 +3,7 @@
 <p><span class="label label-info">To Open</span> You can click on the names of the workspaces to open up colud9 IDE.
 Workspace should be running in order to access the IDE. Stopped or paused workspaces will not be accessable.</p>
 <p><span class="label label-info">About Create</span> For each workspace there is a seperate docker container. Every action you take (including command line actions such as apt-get) will be only for that container.</p>
-<p><span class="label label-warning">About Id</span> Globally unique id's should be set to workpaces. It should start with a character, continue with a character or digit, should be at least 4 characters and less then 10 characters.</p>
+<p><span class="label label-warning">About Id</span> Globally unique id's should be set to workpaces. It should start with a character, continue with a character or digit, should be at least 4 characters and at most 10 characters.</p>
 <p><span class="label label-warning">About Kill</span> Killing a workspace kills the container along with all of its processes. It might cause data loss.</p>
 <p><span class="label label-danger">About Delete</span> When deleting a workspace its container is also deleted. Files in that container will not be recoverable. Use delete with caution.</p>
 
@@ -55,7 +55,7 @@ Workspace should be running in order to access the IDE. Stopped or paused worksp
     </table>
     <div class="modal fade" ng-app="cloud9wsmanApp" ng-controller="editMyWorkspaceController" id="editMyWorkspaceModal" tabindex="-1" role="dialog"
     aria-labelledby="editMyWorkspaceModalTitleLabel" aria-hidden="true">
-        <form class="modal-dialog" ng-Submit="updateWorkspace()">
+        <form class="modal-dialog" name="updateMyWorkspaceForm" ng-Submit="updateWorkspace()">
             <div>
                 <div class="modal-content">
                     <div class="modal-header">
@@ -70,12 +70,12 @@ Workspace should be running in order to access the IDE. Stopped or paused worksp
                             <div class="form-group">
                                 <label for="editMyWorkspaceNameInput">Id</label>
                                 <input type="text" class="form-control" id="editMyWorkspaceIdInput"
-                                ng-model="workspace.id" placeholder="Enter id">
+                                ng-model="workspace.id" ng-readonly="!createMode" placeholder="Enter id" required>
                             </div>
                             <div class="form-group">
                                 <label for="editMyWorkspaceNameInput">Name</label>
                                 <input type="text" class="form-control" id="editMyWorkspaceNameInput"
-                                ng-model="workspace.name" placeholder="Enter name">
+                                ng-model="workspace.name" placeholder="Enter name" required>
                             </div>
                         </fieldset>
                     </div>
@@ -90,7 +90,7 @@ Workspace should be running in order to access the IDE. Stopped or paused worksp
                     <div class="modal-footer">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary" id="editMyWorkspaceButton"
-                        data-loading-text="{{createMode?'Creating':'Updating'}}...">{{createMode?'Create':'Update'}}</button>
+                        data-loading-text="{{createMode?'Creating':'Updating'}}..." ng-disabled="updateMyWorkspaceForm.$invalid || isUnchanged(workspace)">{{createMode?'Create':'Update'}}</button>
                     </div>
                 </div>
             </div>

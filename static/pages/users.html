@@ -1,6 +1,7 @@
 <h1>Users</h1>
-<p><span class="label label-warning">About Delete</span> Deleting a user only possible after deleting all of his workspaces. Otherwise it will fail silently.</p>
+<p><span class="label label-warning">About Delete</span> Workspaces of deleted user will remain in system. They will be accessable in wokrspaces section.</p>
 <p><span class="label label-warning">About Create</span> You can not create a user with existing username. It will fail silently.</p>
+<p><span class="label label-warning">About Username</span> Usernames should start with a character, continue with a character or digit, should be at least 4 characters and at most 10 characters.</p>
 <div ng-app="cloud9wsmanApp" ng-controller="usersController" class="panel panel-default">
     <div class="panel-heading">
         <div class="input-group">
