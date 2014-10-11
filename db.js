@@ -2,7 +2,7 @@ var crypto = require('crypto');
 var redis = require("redis"),
     client = redis.createClient();
 
-var identifierRegex = /^[$A-Z_][0-9A-Z_$]{3,9}$/i;
+var identifierRegex = /^[$a-z][0-9a-z]{3,9}$/;
 // if you'd like to select database 3, instead of 0 (default), call
 // client.select(3, function() { /* ... */ });
 

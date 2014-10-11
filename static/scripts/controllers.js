@@ -162,7 +162,26 @@ module.controller('mainController', function($scope, usersService) {
 module.controller('aboutController', function($scope) {
 }); 
 module.controller('profileController', function($scope) {
+    $scope.resetPassword = function(){
+        $scope.$broadcast('resetMyPassword');
+    };
 }); 
+module.controller('resetMyPasswordController', function($scope, usersService) {
+    $scope.$on('resetMyPassword', function() {
+        $scope.credentials = {"username":$scope.currentUser.username};
+        $('#resetMyPasswordModal').modal('show');
+    });
+    $scope.resetPassword = function(){
+        $('#resetMyPasswordButton').button('loading');
+        usersService.resetPassword($scope.credentials).success(function(response){
+            $('#resetMyPasswordButton').button('reset');
+            $('#resetMyPasswordModal').modal('hide');
+        }).error(function(response){
+            $('#resetMyPasswordButton').button('reset');
+            console.error(response);
+        });
+    };
+});
 module.controller('myWorkspacesController', function($scope, $rootScope, workspacesService) {
     $scope.workspacesList = [];
     workspacesService.getMyWorkspaces().success(function (response) {

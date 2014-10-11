@@ -40,7 +40,14 @@ function setUserPasswordHandler(request, response){
         var hasAdminRole = auth.userHasRole('admin');
         var hasSameUsername = auth.userHasUsername(user.username);
         var requirement = auth.userHasSome([hasAdminRole,hasSameUsername]);
-        return Q(session).then(auth.requireUserF(requirement)).then(auth.encryptPassword.bind(null,user)).then(db.users.setPassword);
+        return Q(session).then(auth.requireUserF(requirement)).then(function(loggedInUser){
+            if (!hasAdminRole(loggedInUser)){
+                // Authenticate old password
+                return auth.checkLogin({"username":user.username,"password":user.oldPassword});
+            }else{
+                return Q(loggedInUser);
+            }
+        }).then(auth.encryptPassword.bind(null, user)).then(db.users.setPassword);
     }).done(U.jsonEmptyResultHandler(response), U.jsonErrorHandler(response));
 }
 

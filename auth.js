@@ -35,13 +35,16 @@ function getUser(session){
 }
 
 function login(session, credentials){
-    credentials.password = crypto.createHmac('sha512', credentials.username).update(credentials.password).digest('base64');
-    return db.users.login(credentials).then(setUserToSession(session));
+    return checkLogin(credentials).then(setUserToSession(session));
 }
 
 function encryptPassword(user){
     user.password = crypto.createHmac('sha512', user.username).update(user.password).digest('base64');
     return Q(user);
+}
+
+function checkLogin(credentials){
+    return encryptPassword(credentials).then(db.users.login);
 }
 
 function logout(session){
@@ -121,3 +124,4 @@ exports.userHasRole = userHasRole;
 exports.userHasUsername = userHasUsername;
 exports.userHasAll = userHasAll;
 exports.userHasSome = userHasSome;
+exports.checkLogin = checkLogin;
