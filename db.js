@@ -191,6 +191,9 @@ function listUsers(){
 function internalGetUser(username){
     return redis_hget(usersKey, username).then(JSON.parse).then(expectNotNull('userdoesnotexist','User does not exist: '+username));
 }
+function getUserByUsername(username){
+    return internalGetUser(username).then(internalFilterUserReturnFields);
+}
 function internalUpdateUser(user, fields){
     return internalGetUser(user.username).then(function(dbUser){
         return redis_hset(usersKey,user.username,JSON.stringify(copyObject(user,dbUser,fields))).then(constant(dbUser)).then(internalFilterUserReturnFields);
@@ -229,6 +232,7 @@ function getNumberOfUsers(){
 }
 
 exports.users = {
+    'getByUsername':getUserByUsername,
     'list':listUsers,
     'create':createUser,
     'update':updateUser,

@@ -11,7 +11,7 @@ module.config(function($routeProvider) {
         })
         .when('/manage', {
             templateUrl : 'pages/manage.html',
-            controller  : 'manageController'
+            controller  : 'myWorkspacesController'
         })
         .when('/profile', {
             templateUrl : 'pages/profile.html',
@@ -161,53 +161,7 @@ module.controller('mainController', function($scope, usersService) {
 }); 
 module.controller('aboutController', function($scope) {
 }); 
-module.controller('manageController', function($scope, workspacesService) {
-    $scope.workspacesList = [];
-    workspacesService.getMyWorkspaces().success(function (response) {
-        $scope.workspacesList = response;
-    }).error(function(response){
-        console.error(response);
-    });
-    $scope.updateWorkspace = function(user){
-        alert("NOT YET!");
-    };
-    $scope.deleteWorkspace = function(workspace){
-        workspacesService.deleteWorkspace(workspace).success(function(response){
-            var idx = $scope.workspacesList.indexOf(workspace);
-            if (idx != -1) {
-                $scope.workspacesList.splice(idx, 1);
-            }else{
-                console.error("Could not remove the element");
-            }
-        }).error(function(response){
-            console.error(response);
-        });
-    };
-}); 
 module.controller('profileController', function($scope) {
-}); 
-module.controller('workspacesController', function($scope, workspacesService) {
-    $scope.workspacesList = [];
-    workspacesService.getWorkspaces().success(function (response) {
-        $scope.workspacesList = response;
-    }).error(function(response){
-        console.error(response);
-    });
-    $scope.updateWorkspace = function(user){
-        alert("NOT YET!");
-    };
-    $scope.deleteWorkspace = function(workspace){
-        workspacesService.deleteWorkspace(workspace).success(function(response){
-            var idx = $scope.workspacesList.indexOf(workspace);
-            if (idx != -1) {
-                $scope.workspacesList.splice(idx, 1);
-            }else{
-                console.error("Could not remove the element");
-            }
-        }).error(function(response){
-            console.error(response);
-        });
-    };
 }); 
 module.controller('myWorkspacesController', function($scope, $rootScope, workspacesService) {
     $scope.workspacesList = [];
@@ -224,8 +178,6 @@ module.controller('myWorkspacesController', function($scope, $rootScope, workspa
     };
     $scope.workspaceUrl = function(workspace){
         return '/workspaces/go?id='+workspace.id;
-        //return "http://"+window.location.hostname+":"+workspace.port;
-        //return "http://"+workspace.id+".cloud9wsman.com:"+window.location.port;
     };
     function registerWSStateAction(name,f){
         $scope[name]=function(workspace){
@@ -287,6 +239,86 @@ module.controller('editMyWorkspaceController', function($scope, workspacesServic
             }
         }).error(function(response){
             $('#editMyWorkspaceButton').button('reset');
+            console.error(response);
+        });
+    };
+});
+module.controller('workspacesController', function($scope, $rootScope, workspacesService) {
+    $scope.workspacesList = [];
+    workspacesService.getWorkspaces().success(function (response) {
+        $scope.workspacesList = response;
+    }).error(function(response){
+        console.error(response);
+    });
+    $scope.editWorkspace = function(workspace){
+        $scope.$broadcast('editWorkspace',workspace);
+    };
+    $scope.clearQuery = function(){
+        $scope.query = '';
+    };
+    $scope.workspaceUrl = function(workspace){
+        return '/workspaces/go?id='+workspace.id;
+    };
+    function registerWSStateAction(name,f){
+        $scope[name]=function(workspace){
+            f(workspace).success(function(state){
+                workspace.state = state;
+            }).error(function(response){
+                console.error(response);
+            });
+        };
+    }
+    registerWSStateAction('startWorkspace',workspacesService.startWorkspace);
+    registerWSStateAction('stopWorkspace',workspacesService.stopWorkspace);
+    registerWSStateAction('killWorkspace',workspacesService.killWorkspace);
+    registerWSStateAction('restartWorkspace',workspacesService.restartWorkspace);
+    registerWSStateAction('pauseWorkspace',workspacesService.pauseWorkspace);
+    registerWSStateAction('resumeWorkspace',workspacesService.resumeWorkspace);
+    
+    $scope.deleteWorkspace = function(workspace){
+        workspacesService.deleteWorkspace(workspace).success(function(response){
+            var idx = $scope.workspacesList.indexOf(workspace);
+            if (idx != -1) {
+                $scope.workspacesList.splice(idx, 1);
+            }else{
+                console.error("Could not remove the element");
+            }
+        }).error(function(response){
+            console.error(response);
+        });
+    };
+}); 
+module.controller('editWorkspaceController', function($scope, workspacesService) {
+    $scope.$on('editWorkspace', function(on, workspace) {
+        $scope.originalWorkspace = workspace;
+        $scope.workspace = {
+            id: workspace.id,
+            name: workspace.name,
+            description: workspace.description,
+            username:workspace.username
+        };
+        $scope.createMode=workspace.id?false:true;
+        $('#editWorkspaceModal').modal('show');
+    });
+    $scope.updateWorkspace = function(){
+        $('#editWorkspaceButton').button('loading');
+        var f;
+        if ($scope.createMode)
+            f = workspacesService.createWorkspace;
+        else
+            f = workspacesService.updateWorkspace;
+        f($scope.workspace).success(function(response){
+            $('#editWorkspaceButton').button('reset');
+            $('#editWorkspaceModal').modal('hide');
+            if ($scope.createMode){
+                $scope.workspacesList.push(response);
+            }else{
+                for(var key in response){
+                    $scope.originalWorkspace[key] = response[key];
+                }
+            }
+        }).error(function(response){
+            $('#editWorkspaceButton').button('reset');
             console.error(response);
         });
     };

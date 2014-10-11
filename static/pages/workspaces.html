@@ -1,37 +1,63 @@
+<h1>Workspaces</h1>
+<p><span class="label label-warning">About Errors</span> None of the errors are displayed in user interface. All will fail silently.</p>
+<p><span class="label label-info">To Open</span> You can click on the names of the workspaces to open up colud9 IDE.
+Workspace should be running in order to access the IDE. Stopped or paused workspaces will not be accessable.</p>
+<p><span class="label label-info">About Create</span> For each workspace there is a seperate docker container. Every action you take (including command line actions such as apt-get) will be only for that container.</p>
+<p><span class="label label-warning">About Id</span> Globally unique id's should be set to workpaces. It should start with a character, continue with a character or digit, should be at least 4 characters and at most 10 characters.</p>
+<p><span class="label label-warning">About Kill</span> Killing a workspace kills the container along with all of its processes. It might cause data loss.</p>
+<p><span class="label label-danger">About Delete</span> When deleting a workspace its container is also deleted. Files in that container will not be recoverable. Use delete with caution.</p>
+
 <div ng-app="cloud9wsmanApp" ng-controller="workspacesController" class="panel panel-default">
-    <div class="panel-heading">Workspaces
-        <button class="btn btn-primary" data-toggle="modal" data-target="#createWorkspaceModal">Create</button>
+    <div class="panel-heading">
+        <div class="input-group">
+            <span class="input-group-addon">Filter</span>
+            <input type="text" class="form-control" ng-model="query">
+            <div class="input-group-btn">
+                <button class="btn btn-default" ng-click="clearQuery()">
+                    <span class="glyphicon glyphicon-remove"></span></button>
+                <button class="btn btn-primary" ng-click="editWorkspace({})">
+                    <span class="glyphicon glyphicon-plus"></span></button>
+            </div>
+        </div>
     </div>
     <table class="table">
         <thead>
             <tr>
-                <th>#</th>
+                <th>S</th>
+                <th>ID</th>
                 <th>Name</th>
-                <th>Identifier</th>
-                <th>User</th>
-                <th>Running</th>
+                <th>Container ID</th>
                 <th>Port</th>
+                <th>Username</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            <tr ng-repeat="workspace in workspacesList">
+            <tr ng-repeat="workspace in workspacesList | filter:query">
+                <td><span ng-show="workspace.state.Running &amp;&amp; !workspace.state.Paused" style="color:#00C800" class="glyphicon glyphicon-play" title="Running"></span><span ng-show="!workspace.state.Running" style="color:#C80000" class="glyphicon glyphicon-stop" title="Stopped"></span><span ng-show="workspace.state.Running &amp;&amp; workspace.state.Paused" style="color:#C8C800" class="glyphicon glyphicon-pause" title="Paused"></span></td>
                 <td>{{workspace.id}}</td>
-                <td>{{workspace.name}}</td>
-                <td>{{workspace.identifier}}</td>
-                <td>{{workspace.username}}</td>
+                <td><a href="{{workspaceUrl(workspace)}}" target="_blank">{{workspace.name}}</a></td>
+                <td><code title="{{workspace.identifier}}">{{workspace.identifier.substring(0,6)}}</code></td>
                 <td>{{workspace.port}}</td>
-                <td>{{workspace.state.Running}}</td>
+                <td>{{workspace.username}}</td>
                 <td>
-                    <button class="btn btn-default" ng-click="updateWorkspace(workspace)">Update</button>
-                    <button class="btn btn-danger" ng-click="deleteWorkspace(workspace)" ng-confirm-click="Are you sure you want to delete the workspace? This operation is irreversable!">Delete</button>
+                    <div class="btn-group">
+                        <button class="btn btn-default" ng-click="editWorkspace(workspace)" title="Update"><span class="glyphicon glyphicon-edit"></span></button>
+                        <button class="btn btn-default" ng-click="startWorkspace(workspace)" ng-hide="workspace.state.Running" title="Start"><span class="glyphicon glyphicon-play"></span></button>
+                        <button class="btn btn-default" ng-click="stopWorkspace(workspace)" ng-hide="!workspace.state.Running" ng-disabled="workspace.state.Paused" title="Stop"><span class="glyphicon glyphicon-stop"></span></button>
+                        <button class="btn btn-default" ng-click="restartWorkspace(workspace)" ng-disabled="!workspace.state.Running || workspace.state.Paused" title="Restart"><span class="glyphicon glyphicon-repeat"></span></button>
+                        <button class="btn btn-default" ng-click="pauseWorkspace(workspace)" ng-disabled="!workspace.state.Running" ng-hide="workspace.state.Paused" title="Pause"><span class="glyphicon glyphicon-pause"></span></button>
+                        <button class="btn btn-default" ng-click="resumeWorkspace(workspace)" ng-disabled="!workspace.state.Running"  ng-hide="!workspace.state.Paused" title="Resume"><span class="glyphicon glyphicon-play"></span></button>
+                        <button class="btn btn-warning" ng-click="killWorkspace(workspace)" ng-disabled="!workspace.state.Running || workspace.state.Paused" title="Kill"><span class="glyphicon glyphicon-minus-sign"></span></button>
+                        <button class="btn btn-danger" ng-click="deleteWorkspace(workspace)" ng-confirm-click="Are you sure you want to delete the workspace? This operation is irreversable!" ng-disabled="workspace.state.Paused" title="Delete"><span class="glyphicon glyphicon-trash"></span></button>
+                    </div>
                 </td>
             </tr>
         </tbody>
     </table>
-    <div class="modal fade" ng-app="cloud9wsmanApp" ng-controller="createWorkspaceController" id="createWorkspaceModal" tabindex="-1" role="dialog"
-    aria-labelledby="createWorkspaceModalTitleLabel" aria-hidden="true">
-        <form class="modal-dialog" ng-Submit="addWorkspace()">
+    <div class="modal fade" ng-app="cloud9wsmanApp" ng-controller="editWorkspaceController" id="editWorkspaceModal" tabindex="-1" role="dialog"
+    aria-labelledby="editWorkspaceModalTitleLabel" aria-hidden="true">
+        <form class="modal-dialog" name="updateWorkspaceForm" ng-Submit="updateWorkspace()">
             <div>
                 <div class="modal-content">
                     <div class="modal-header">
@@ -39,21 +65,35 @@
                             <span aria-hidden="true">&times;</span>
                             <span class="sr-only">Close</span>
                         </button>
-                        <h4 id="createWorkspaceModalTitleLabel" class="modal-title">Create Workspace</h4>
+                        <h4 id="editWorkspaceModalTitleLabel" class="modal-title">{{createMode?'Create':'Edit'}} Workspace</h4>
                     </div>
                     <div class="modal-body">
                         <fieldset>
                             <div class="form-group">
-                                <label for="workspaceNameInput">Name</label>
-                                <input type="text" class="form-control" id="workspaceNameInput"
-                                ng-model="name" placeholder="Enter name">
+                                <label for="editWorkspaceNameInput">Id</label>
+                                <input type="text" class="form-control" id="editWorkspaceIdInput"
+                                ng-model="workspace.id" ng-readonly="!createMode" placeholder="Enter id" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editWorkspaceNameInput">Name</label>
+                                <input type="text" class="form-control" id="editWorkspaceNameInput"
+                                ng-model="workspace.name" placeholder="Enter name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editWorkspaceDescriptionInput">Description</label>
+                                <textarea id="editWorkspaceDescriptionInput" ng-model="workspace.description" class="form-control" rows="4" placeholder="Enter description"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="editWorkspaceUsernameInput">Username</label>
+                                <input type="text" class="form-control" id="editWorkspaceUsernameInput"
+                                ng-model="workspace.username" placeholder="Enter username" required>
                             </div>
                         </fieldset>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary" id="createWorkspaceButton"
-                        data-loading-text="Creating...">Create</button>
+                        <button type="submit" class="btn btn-primary" id="editWorkspaceButton"
+                        data-loading-text="{{createMode?'Creating':'Updating'}}..." ng-disabled="updateWorkspaceForm.$invalid || isUnchanged(workspace)">{{createMode?'Create':'Update'}}</button>
                     </div>
                 </div>
             </div>

@@ -47,16 +47,40 @@ function listMyWorkspacesHandler(request, response){
         return db.workspaces.listByUsername(user.username);
     }).then(putWorkspaceStates).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
-
+function isEmptyString(str){
+    return str===undefined || str === null || str ==='';
+}
+function decideUsername(user, givenUsername, defaultUsername){
+    if (isEmptyString(givenUsername))
+        return Q(defaultUsername);
+    else if (auth.userHasRole('admin')(user)){
+        return db.users.getByUsername(givenUsername).then(function(user){
+            return Q(givenUsername);
+        }).catch(function(err){
+            if (err.code=='userdoesnotexist'){
+                return Q(defaultUsername);
+            }else{
+                return Q.reject(err);
+            }
+        });
+    }else{
+        return Q(defaultUsername);
+    }
+}
 function createWorkspaceHandler(request, response){
     Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser('user'))]).spread(function(workspace, user) {
         return db.workspaces.findAvailablePort(11000,15000).then(function(p){
             var port = p.toString();
             return dockerService.container.create("cank/cloud9:v1", ["/cloud9.sh", port], [port]).then(function(containerId){
                 workspace.identifier = containerId;
-                workspace.username = user.username;
                 workspace.port = port;
-                return db.workspaces.create(workspace);
+                return decideUsername(user, workspace.username, user.username).then(function(username){
+                    workspace.username = username;
+                    return db.workspaces.create(workspace);
+                }).catch(function(err){
+                    dockerService.container.remove(containerId);
+                    return Q.reject(err);
+                });
             }).then(putWorkspaceState);
         });
     }).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
@@ -109,7 +133,10 @@ function updateWorkspaceHandler(request, response){
         var workspace = r.requestWorkspace;
         ws.name = workspace.name;
         ws.description = workspace.description;
-        return db.workspaces.update(ws).then(putWorkspaceState);
+        return decideUsername(r.user,workspace.username,ws.username).then(function(username){
+            ws.username = username;
+            return db.workspaces.update(ws).then(putWorkspaceState);
+        });
     }).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
 function goToWorkspaceHandler(request, response){
