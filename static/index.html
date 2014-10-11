@@ -39,9 +39,9 @@
         <div class="collapse navbar-collapse" ng-controller="headerController">
           <ul class="nav navbar-nav">
             <li ng-class="{ active: isActive('/')}"><a href="#/">Home</a></li>
-            <li ng-class="{ active: isActive('/manage')}"><a href="#/manage">Manage</a></li>
-            <li ng-class="{ active: isActive('/users')}"><a href="#/users">Users</a></li>
-            <li ng-class="{ active: isActive('/workspaces')}"><a href="#/workspaces">Workspaces</a></li>
+            <li ng-show="currentUser" ng-class="{ active: isActive('/manage')}"><a href="#/manage">Manage</a></li>
+            <li ng-show="currentUserInAdminRole" ng-class="{ active: isActive('/users')}"><a href="#/users">Users</a></li>
+            <li ng-show="currentUserInAdminRole" ng-class="{ active: isActive('/workspaces')}"><a href="#/workspaces">Workspaces</a></li>
             <li ng-class="{ active: isActive('/about')}"><a href="#/about">About</a></li>
           </ul>
           <ul class="nav navbar-nav navbar-right" ng-show="shallLogout">

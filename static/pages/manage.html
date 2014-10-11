@@ -15,7 +15,7 @@ Workspace should be running in order to access the IDE. Stopped or paused worksp
             <div class="input-group-btn">
                 <button class="btn btn-default" ng-click="clearQuery()">
                     <span class="glyphicon glyphicon-remove"></span></button>
-                <button class="btn btn-primary" ng-click="editWorkspace({})">
+                <button class="btn btn-primary" ng-click="editWorkspace({})" ng-disabled="!currentUserInUserRole">
                     <span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>

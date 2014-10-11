@@ -147,6 +147,8 @@ module.controller('mainController', function($scope, usersService) {
     function updateFromServer(){
         usersService.currentUser().success(function(response){
             $scope.currentUser = response;
+            $scope.currentUserInAdminRole = $scope.currentUser && $scope.currentUser.userroles=='admin';
+            $scope.currentUserInUserRole = $scope.currentUser && ($scope.currentUser.userroles=='admin' || $scope.currentUser.userroles=='user');
             $scope.currentUserChecked=true;
             updateStatus();
         });
@@ -351,6 +353,8 @@ module.controller('headerController', function($rootScope,$scope,$location, user
         var credentials = {'username':$scope.username,'password':$scope.password};
         usersService.login(credentials).success(function(response) {
             $rootScope.$broadcast('currentUserChanged');
+            $scope.username = "";
+            $scope.password = "";
         }).error(function(response){
             console.error(response);
         });
@@ -359,6 +363,9 @@ module.controller('headerController', function($rootScope,$scope,$location, user
         $rootScope.$broadcast('currentUserAboutToChange');
         usersService.logout().success(function(response) {
             $rootScope.$broadcast('currentUserChanged');
+            $scope.username = "";
+            $scope.password = "";
+            document.location='/#';
         }).error(function(response){
             console.error(response);
         });
