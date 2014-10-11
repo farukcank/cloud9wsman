@@ -167,7 +167,7 @@ function workspaceProxyFunction(proxy){
             req.pause();
             db.workspaces.getById(match[1]).done(function (workspace){
                 req.resume();
-                var tar = 'http://192.168.100.128:'+workspace.port;
+                var tar = 'http://'+config.get('docker.address')+":"+workspace.port;
                 proxy.web(req, res, {
                     target: tar
                 });

@@ -9,6 +9,7 @@
         "command":["/cloud9.sh", "{port}"]
     },
     "docker":{
-        "socketPath":"/var/run/docker.sock"
+        "socketPath":"/var/run/docker.sock",
+        "address":"localhost"
     }
 }
