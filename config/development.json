@@ -3,5 +3,9 @@
         "port":null,
         "host":"0.0.0.0"
     },
-    "workspaceAddress":"http://{workspace.id}.cloud9wsman.com:{application.port}"
+    "workspaceAddress":"http://{workspace.id}.cloud9wsman.com:{application.port}",
+    "baseContainer":{
+        "name":"cank/cloud9:v1",
+        "command":["/cloud9.sh", "{port}"]
+    }
 }

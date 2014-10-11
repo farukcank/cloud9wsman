@@ -6,6 +6,16 @@ var db = require("./db");
 var session = require("./session");
 var auth = require("./auth");
 var url = require('url');
+
+function replaceParameters(str, replacements){
+    return str.replace(/{([a-zA-Z_0-9\.]+)}/g, function(match, key) { 
+      return typeof replacements[key] != 'undefined'
+        ? replacements[key]
+        : match
+      ;
+    });
+}
+
 function putWorkspaceState(workspace){
     return dockerService.container.inspect(workspace.identifier).then(function(inspectResult){
         workspace.state = inspectResult.State;
@@ -71,7 +81,10 @@ function createWorkspaceHandler(request, response){
     Q.all([U.parseJSONBody(request), session.getSession(request).then(auth.requireUser('user'))]).spread(function(workspace, user) {
         return db.workspaces.findAvailablePort(11000,15000).then(function(p){
             var port = p.toString();
-            return dockerService.container.create("cank/cloud9:v1", ["/cloud9.sh", port], [port]).then(function(containerId){
+            function repl(s){
+                replaceParameters(s,{"port":port});
+            }
+            return dockerService.container.create(config.get('baseContainer.name'), config.get('baseContainer.command').map(repl), [port]).then(function(containerId){
                 workspace.identifier = containerId;
                 workspace.port = port;
                 return decideUsername(user, workspace.username, user.username).then(function(username){
@@ -142,13 +155,7 @@ function updateWorkspaceHandler(request, response){
 function goToWorkspaceHandler(request, response){
     var r = url.parse(request.url, true);
     var workspaceId = r.query.id;
-    var replacements = {"workspace.id":workspaceId,"application.port":U.getApplicationPort()};
-    var targetAddress = config.get('workspaceAddress').replace(/{([a-zA-Z_0-9\.]+)}/g, function(match, key) { 
-      return typeof replacements[key] != 'undefined'
-        ? replacements[key]
-        : match
-      ;
-    });
+    var targetAddress = replaceParameters(config.get('workspaceAddress'), {"workspace.id":workspaceId,"application.port":U.getApplicationPort()});
     response.writeHead(302, {'Location': targetAddress});
     response.end();
 }
