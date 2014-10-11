@@ -159,23 +159,54 @@ function goToWorkspaceHandler(request, response){
     response.writeHead(302, {'Location': targetAddress});
     response.end();
 }
+function basicAuthenticate(req){
+    if (req.headers.authorization && req.headers.authorization.indexOf('Basic ')===0){
+        var s = new Buffer(req.headers.authorization.substring(6), 'base64').toString('ascii');
+        var i = s.indexOf(':');
+        if (i>=0){
+            var username = s.substring(0,i);
+            var password = s.substring(i+1);
+            return auth.checkLogin({"username":username,"password":password});
+        }
+    }
+    var error = new Error("Unauthorized");
+    error.code = "unauthroized";
+    return Q.reject(error);
+}
+function checkWorkspaceOwner(arr){
+    var user = arr[0];
+    var workspace = arr[1];
+    if (workspace.username==user.username || auth.userHasRole('admin')(user)){
+        return Q(arr);
+    }else{
+        var error = new Error("Unauthorized");
+        error.code = "unauthroized";
+        return Q.reject(error);
+    }
+}
 function workspaceProxyFunction(proxy){
-    var identifierRegex = /^([$A-Z_][0-9A-Z_$]{3,9})\./i;
+    var identifierRegex = /^([$a-z][0-9a-z]{3,9})\./;
     return function(req, res, next) {
         var match = identifierRegex.exec(req.headers.host);
         if (match){
             req.pause();
-            db.workspaces.getById(match[1]).done(function (workspace){
+            Q.all([basicAuthenticate(req),db.workspaces.getById(match[1])]).then(checkWorkspaceOwner).spread(function(user, workspace){
                 req.resume();
                 var tar = 'http://'+config.get('docker.address')+":"+workspace.port;
                 proxy.web(req, res, {
                     target: tar
                 });
-            },function(err){
+            }).done(null,function(err){
                 req.resume();
-                res.writeHead(500, {"Content-Type":"text/plain"});
-                res.write(err.message);
-                res.end();
+                if (err.code=='unauthroized'){
+                    res.writeHead(401, {"Content-Type":"text/plain","WWW-Authenticate":"Basic realm=\""+match[1]+"\""});
+                    res.write("Unauthorized");
+                    res.end();
+                }else{
+                    res.writeHead(500, {"Content-Type":"text/plain"});
+                    res.write(err.message);
+                    res.end();
+                }
                 console.log(err.stack);
             });
         }else{
