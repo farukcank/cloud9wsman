@@ -152,12 +152,21 @@ function updateWorkspaceHandler(request, response){
         });
     }).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
+function extractHost(request){
+    var index = request.headers.host.indexOf(':');
+    if (index>=0){
+        return request.headers.host.substring(0,index);
+    }
+    return request.headers.host;
+}
 function goToWorkspaceHandler(request, response){
     var r = url.parse(request.url, true);
     var workspaceId = r.query.id;
-    var targetAddress = replaceParameters(config.get('workspaceAddress'), {"workspace.id":workspaceId,"application.port":U.getApplicationPort()});
-    response.writeHead(302, {'Location': targetAddress});
-    response.end();
+    db.workspaces.getById(workspaceId).done(function (workspace){
+        var targetAddress = replaceParameters(config.get('workspaceAddress'), {"workspace.id":workspaceId,"workspace.port":workspace.port,"application.host":extractHost(request),"application.port":U.getApplicationPort()});
+        response.writeHead(302, {'Location': targetAddress});
+        response.end();
+    });
 }
 function basicAuthenticate(req){
     if (req.headers.authorization && req.headers.authorization.indexOf('Basic ')===0){
