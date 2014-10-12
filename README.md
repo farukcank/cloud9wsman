@@ -41,8 +41,18 @@ This last step will download the cloud9 image I have prepared.
     git clone https://github.com/farukcank/cloud9wsman.git
     cd cloud9wsman
     npm install
-    node index.js
+    NODE_ENV=production; node index.js
     
+### Proxy
+You have probably noticed that each workspace gets its own port and it is not secured. For example your site is at http://192.168.1.10:8080 and your workspace is at http://192.168.1.10:11000, http://192.168.1.10:11001 and so on... 
+System also proxies the workspaces by hostname in request header. However you will have to configure your dns and create an A record for **wildcard** `*.yourdomain.com` to your server. Then open the file config/production.json and replace the line 
+
+	"workspaceAddress":"http://{application.host}:{workspace.port}",
+
+with line below
+
+	"workspaceAddress":"http://{workspace.id}.yourdomain.com:{application.port}",
+
 ## First run
-You can login with username 'admin' and password 'admin'. It is strongly recommended that you change this password immediateliy.
-Create a workspace in manage pages, run it, then click its name to launch the cloud9 IDE.
+Server will be listening at port 8080. You can login with username `admin` and password `admin`. It is strongly recommended that you change this password immediately. Create a workspace in manage pages, run it, then click its name to launch the cloud9 IDE.
+
