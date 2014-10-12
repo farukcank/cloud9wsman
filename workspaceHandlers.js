@@ -198,7 +198,7 @@ function workspaceProxyFunction(proxy){
                 });
             }).done(null,function(err){
                 req.resume();
-                if (err.code=='unauthroized' || err.code=='invalidusernameorpassword'){
+                if (err.code=='unauthroized' || err.code=='invalidusernameorpassword' || err.code == 'invalidUsernameOrPassword'){
                     res.writeHead(401, {"Content-Type":"text/plain","WWW-Authenticate":"Basic realm=\""+match[1]+"\""});
                     res.write("Unauthorized");
                     res.end();

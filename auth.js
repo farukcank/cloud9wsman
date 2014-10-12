@@ -2,6 +2,10 @@ var Q = require("q");
 var db = require("./db");
 var crypto = require('crypto');
 
+var NodeCache = require( "node-cache" );
+var pbkdf2Cache = new NodeCache( { stdTTL: 100, checkperiod: 120 } );
+
+
 function randomBytes(len){
     var deferred = Q.defer();
     crypto.randomBytes(32, function(err, key){
@@ -14,12 +18,18 @@ function randomBytes(len){
 }
 
 function pbkdf2(salt, password){
+    var cacheKey = JSON.stringify({"salt":salt,"password":password});
+    var cached = pbkdf2Cache.get(cacheKey);
+    if (cached[cacheKey]){
+        return Q(cached[cacheKey]);
+    }
     var deferred = Q.defer();
-    crypto.pbkdf2(password, salt, 1000, 32, function(err,key){
+    crypto.pbkdf2(password, salt, 1000, 32, function(err,result){
         if (err){
             return deferred.reject(err);
         }
-        return deferred.resolve(key);
+        pbkdf2Cache.set(cacheKey,result,300);
+        return deferred.resolve(result);
     });
     return deferred.promise;
 }
