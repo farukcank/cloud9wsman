@@ -30,3 +30,6 @@ node_modules
 .settings
 .c9revisions
 static/out
+
+cloud9wsman.iml
+.idea

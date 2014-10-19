@@ -27,6 +27,7 @@ Workspace should be running in order to access the IDE. Stopped or paused worksp
                 <th>ID</th>
                 <th>Name</th>
                 <th>Container ID</th>
+                <th>IP</th>
                 <th>Port</th>
                 <th>Actions</th>
             </tr>
@@ -37,6 +38,7 @@ Workspace should be running in order to access the IDE. Stopped or paused worksp
                 <td>{{workspace.id}}</td>
                 <td><a href="{{workspaceUrl(workspace)}}" target="_blank">{{workspace.name}}</a></td>
                 <td><code title="{{workspace.identifier}}">{{workspace.identifier.substring(0,6)}}</code></td>
+                <td>{{workspace.ipaddress}}</td>
                 <td>{{workspace.port}}</td>
                 <td>
                     <div class="btn-group">
