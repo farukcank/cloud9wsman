@@ -5,8 +5,9 @@
     },
     "workspaceAddress":"http://{application.host}:{workspace.port}",
     "baseContainer":{
-        "name":"fcank/cloud9:v1",
-        "command":["/cloud9.sh", "{port}"]
+        "name":"fcank/cloud9:v2",
+        "command":["/cloud9.sh", "{port}", "{workspaceId}", "{portAssignmentServerPort}"],
+        "portAssignmentServerPort":2087
     },
     "docker":{
         "socketPath":"/var/run/docker.sock",

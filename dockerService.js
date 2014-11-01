@@ -93,7 +93,7 @@ function createContainer(image, command, ports){
         "AttachStderr": false,
         "AttachStdin": false,
         "AttachStdout": false,
-        "Cmd": ["/cloud9.sh", ports[0]],
+        "Cmd": command,
         "CpuShares": 0,
         "Cpuset": "",
         "Domainname": "",
