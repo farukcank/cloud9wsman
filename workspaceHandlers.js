@@ -84,7 +84,7 @@ function createWorkspaceHandler(request, response){
         return db.workspaces.findAvailablePort(11000,15000).then(function(p){
             var port = p.toString();
             function repl(s){
-                replaceParameters(s,{"port":port,"workspaceId":workspace.id,"portAssignmentServerPort":config.get('baseContainer.portAssignmentServerPort')});
+                return replaceParameters(s,{"port":port,"workspaceId":workspace.id,"portAssignmentServerPort":config.get('baseContainer.portAssignmentServerPort')});
             }
             return dockerService.container.create(config.get('baseContainer.name'), config.get('baseContainer.command').map(repl), [port]).then(function(containerId){
                 workspace.identifier = containerId;
