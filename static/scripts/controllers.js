@@ -202,8 +202,8 @@ module.controller('myWorkspacesController', function($scope, $rootScope, workspa
     };
     function registerWSStateAction(name,f){
         $scope[name]=function(workspace){
-            f(workspace).success(function(state){
-                workspace.state = state;
+            f(workspace).success(function(result){
+                workspace.state = result.state;
             }).error(function(response){
                 console.error(response);
             });
@@ -282,8 +282,9 @@ module.controller('workspacesController', function($scope, $rootScope, workspace
     };
     function registerWSStateAction(name,f){
         $scope[name]=function(workspace){
-            f(workspace).success(function(state){
-                workspace.state = state;
+            f(workspace).success(function(result){
+                workspace.state = result.state;
+                workspace.ipaddress = result.ipaddress;
             }).error(function(response){
                 console.error(response);
             });

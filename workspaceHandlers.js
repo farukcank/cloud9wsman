@@ -19,6 +19,8 @@ function replaceParameters(str, replacements){
 function putWorkspaceState(workspace){
     return dockerService.container.inspect(workspace.identifier).then(function(inspectResult){
         workspace.state = inspectResult.State;
+        if (inspectResult.NetworkSettings)
+            workspace.ipaddress = inspectResult.NetworkSettings.IPAddress;
         return workspace;
     });
 }
@@ -101,7 +103,7 @@ function createWorkspaceHandler(request, response){
 function workspaceStateChangingHandler(request, response, callback){
     ownWorkspaceOrAdmin(request).then(function(r){
         var ws = r.dbWorkspace;
-        return callback(ws).then(putWorkspaceState.bind(null,ws)).get('state');
+        return callback(ws).then(putWorkspaceState.bind(null,ws));
     }).done(U.jsonResultHandler(response), U.jsonErrorHandler(response));
 }
 function startWorkspaceHandler(request, response){
