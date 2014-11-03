@@ -1,12 +1,12 @@
 {
     "application":{
         "port":null,
-        "host":"0.0.0.0"
+        "host":"192.168.100.128"
     },
     "workspaceAddress":"http://{application.host}:{workspace.port}",
     "_workspaceAddress":"http://{workspace.id}.cloud9wsman.com:{application.port}",
     "baseContainer":{
-        "name":"fcank/cloud9:v2",
+        "name":"fcank/cloud9:v3",
         "command":["/cloud9.sh", "{port}", "{workspaceId}", "{portAssignmentServerPort}"],
         "portAssignmentServerPort":2087
     },

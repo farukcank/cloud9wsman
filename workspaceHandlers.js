@@ -6,6 +6,8 @@ var db = require("./db");
 var session = require("./session");
 var auth = require("./auth");
 var url = require('url');
+var net = require('net');
+var httpProxy = require('http-proxy');
 
 function replaceParameters(str, replacements){
     return str.replace(/{([a-zA-Z_0-9\.]+)}/g, function(match, key) { 
@@ -225,7 +227,122 @@ function workspaceProxyFunction(proxy){
         }
     };
 }
+function findRunningWorkspaces(){
+    return db.workspaces.list().then(putWorkspaceStates).then(function(workspaces){
+        return Q(workspaces.filter(function(ws){if (ws.state.Running && !ws.state.Paused)return true; else return false;}));
+    });
+}
+var sockets = {};
+var proxies = {};
 
+
+function assignPort(workspace){
+    return findPort(workspace).then(function(port){
+        var proxy = proxies[workspace.id];
+        if (proxy){
+            proxy.close();
+        }
+        proxy = httpProxy.createProxyServer({target:'http://'+workspace.ipaddress+':'+port});
+        proxy.on('error', function(e) {
+            console.error(e.stack);
+        });
+        proxy.listen(port);
+        proxies[workspace.id] = proxy;
+        return Q(port);
+    });
+}
+function findPort(workspace){
+    var deferred = Q.defer();
+    findFreePort(20000, 64000, "localhost", function (err, port) {	
+        if (err)
+            deferred.reject(err);
+        else
+            deferred.resolve(port);
+	});
+	return deferred.promise;
+}
+function asyncRepeat(callback, onDone) {
+    callback(function() {
+        asyncRepeat(callback, onDone);
+    }, onDone);
+}
+
+function findFreePort(start, end, hostname, callback) {
+    var pivot = Math.floor(Math.random() * (end - start)) + start;
+    var port = pivot;
+    asyncRepeat(function(next, done) {
+        var stream = net.createConnection(port, hostname);
+        stream.on("connect", function() {
+            stream.destroy();
+            port++;
+            if (port > end) port = start;
+            if (port == pivot) done("Could not find free port.");
+            next();
+        });
+        stream.on("error", function() {
+            done();
+        });
+    }, function(err) {
+        callback(err, port);
+    });
+}
+function checkPortAssignmentSocket(workspace) {
+    var socket = sockets[workspace.id];
+    if (!socket) {
+        var currentData = "";
+        var processData = function() {
+            var index = currentData.indexOf('\n');
+            if (index >= 0) {
+                var action = currentData.substring(0, index);
+                if (action == 'newportrequired') {
+                    assignPort(workspace).done(function(port) {
+                        socket.write('port:'+port+'\n');
+                        console.log("Port "+port+" assigned to "+workspace.id);
+                    });
+                }
+                currentData = currentData.substring(index + 1);
+                processData();
+            }
+        };
+        socket = net.connect({
+            port: config.get('baseContainer.portAssignmentServerPort'),
+            host: workspace.ipaddress
+        },function(){
+            console.log("Connected port assignment: "+workspace.id);
+            console.log('HOST:'+config.get("application.host"));
+            socket.write('host:'+config.get("application.host")+'\n');
+        });
+        socket.on('data', function(data) {
+            currentData = currentData + data;
+            processData();
+        });
+        socket.on('end', function() {
+            delete sockets[workspace.id];
+            console.log("Disconnected port assignment: "+workspace.id);
+        });
+        sockets[workspace.id] = socket;
+    }
+    return Q(true);
+}
+function checkPortAssignmentSockets(){
+    return findRunningWorkspaces().then(function(workspaces){
+        return Q.all(workspaces.map(checkPortAssignmentSocket));
+    });
+}
+function checkPortAssignmentSocketsPeriodically(){
+    function per(){
+        checkPortAssignmentSockets().done(function(){
+            setTimeout(per, 5000);
+        },function(err){
+            console.error(err);
+            setTimeout(per, 5000);
+        });
+    }
+    setTimeout(per, 0);
+}
+function setup(){
+    checkPortAssignmentSocketsPeriodically();
+}
 exports.register = function(router){
     router.register("/workspaces/list",listWorkspacesHandler);
     router.register("/workspaces/listmy",listMyWorkspacesHandler);
@@ -241,3 +358,4 @@ exports.register = function(router){
     router.registerPost("/workspaces/resume",resumeWorkspaceHandler);
 };
 exports.workspaceProxyFunction=workspaceProxyFunction;
+exports.setup=setup;

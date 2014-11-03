@@ -13,3 +13,4 @@ proxy.on('error', function(e) {
     console.error(e.stack);
 });
 server.start(U.getApplicationPort(), config.get("application.host"), router, workspaceHandlers.workspaceProxyFunction(proxy));
+workspaceHandlers.setup();
